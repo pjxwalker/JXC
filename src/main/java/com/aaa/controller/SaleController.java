@@ -138,7 +138,7 @@ public class SaleController {
     public String toChuKu(){
         return "/sale/saledeportout";
     }
-
+//sadas
     @RequestMapping("selectChuKu")
     @ResponseBody
     public List<Map> SelectChuKu(String cusName, String cusContactPhone, String saleNo, String repositoryTypeId){
