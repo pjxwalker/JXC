@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aaa.dao.ProductInfoMapper">
+
+    <!-- 获取所有商品信息 -->
+    <select id="getProductInfoList" resultType="java.util.Map">
+        select pi.*,pt.typeName from product_info pi
+            join product_type pt on pi.typeNo=pt.typeNo
+            <where>
+                <if test="typeNo!=null and typeNo!=''">
+                    and pi.typeNo=#{typeNo}
+                </if>
+                <if test="productNo!=null and productNo!=''">
+                    and  pi.productNo=#{productNo}
+                </if>
+                <if test="productName!=null and productName!=''">
+                    and pi.productName Like CONCAT('%',#{productName},'%')
+                </if>
+            </where>
+            limit #{start},#{limit}
+    </select>
+
+    <!-- 获取一共含有多少条商品信息 -->
+    <select id="getProductCount" resultType="int">
+        select count(*) from product_info
+        <where>
+            <if test="typeNo!=null and typeNo!=''">
+                and typeNo=#{typeNo}
+            </if>
+            <if test="productNo!=null and productNo!=''">
+                and  productNo=#{productNo}
+            </if>
+            <if test="productName!=null and productName!=''">
+                and productName Like CONCAT('%',#{productName},'%')
+            </if>
+        </where>
+    </select>
+
+    <!-- 获取商品信息中最大的productId  -->
+    <select id="getMaxProductId" resultType="int">
+        select max(productId) from product_info
+    </select>
+    <!-- 获取所有的商品类型 -->
+    <select id="getProductType" resultType="ProductType">
+        select typeId,typeName,typeNo from product_type
+    </select>
+
+    <!-- 添加商品基本信息 -->
+    <insert id="addProductInfo" parameterType="ProductInfo">
+        insert into product_info(productNo,productName,productShortName,productSize,typeNo,productInPrice,
+            productOutPrice,productRetailPrice,productPlace,productUnit)
+            values (#{productNo},#{productName},#{productShortName},#{productSize},#{typeNo},#{productInPrice},
+                    #{productOutPrice},#{productRetailPrice},#{productPlace},#{productUnit})
+    </insert>
+
+    <!-- 通过id获取商品详细信息 -->
+    <select id="getProductInfoById" resultType="java.util.Map">
+        select pi.*,pt.typeName from product_info pi
+            join product_type pt on pi.typeNo=pt.typeNo
+            where pi.productId=#{productId}
+    </select>
+
+    <!-- 通过商品id对商品基本信息进行修改 -->
+    <update id="modifyProductInfo" parameterType="ProductInfo">
+        update product_info set productName=#{productName},productShortName=#{productShortName},productSize=#{productSize},
+        typeNo=#{typeNo}, productInPrice=#{productInPrice},productOutPrice=#{productOutPrice},
+        productRetailPrice=#{productRetailPrice},productPlace=#{productPlace},productUnit=#{productUnit}
+         where productId=#{productId}
+    </update>
+
+    <!-- 通过商品id删除商品的基本信息 -->
+    <delete id="deleteProductInfo">
+        delete from product_info where productId=#{productId}
+    </delete>
+</mapper>

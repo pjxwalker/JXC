@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aaa.dao.PurchaseMapper">
+
+    <!-- 获取所有的商品信息 -->
+    <select id="getProductList" resultType="java.util.Map">
+        select pi.*,pt.typeName from product_info pi
+        join product_type pt on pi.typeNo=pt.typeNo
+        <where>
+            <if test="typeNo!=null and typeNo!=''">
+                and pi.typeNo=#{typeNo}
+            </if>
+            <if test="productNo!=null and productNo!=''">
+                and  pi.productNo=#{productNo}
+            </if>
+        </where>
+    </select>
+
+    <!-- 添加一条采购订单 -->
+    <insert id="addPurchase" parameterType="java.util.Map">
+        insert into purchase_master(purchaseNo,purchaser,purchaseTime,
+                                proposer,applyBranch,totalPrice,explains,statusId)
+                    values(#{purchaseNo},#{purchaser},#{purchaseTime},#{proposer},
+                            #{applyBranch},#{totalPrice},#{explains},1)
+    </insert>
+
+    <!-- 同时添加多条订单详情数据 -->
+    <insert id="addPurchaseDetail" parameterType="java.util.List">
+        insert into purchase_detail(purchaseNo,productNo,productNumber,subtotal) values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.purchaseNo},#{item.productNo},#{item.productNumber},#{item.subtotal})
+        </foreach>
+    </insert>
+
+    <!-- 获取purchase_master表中最后一条记录的id  -->
+    <select id="getPurchaseMaxId" resultType="int">
+        select max(purchaseId) from purchase_master
+    </select>
+
+    <!-- 根据条件查询满足条件的所有采购订单  -->
+    <select id="getPurchaseList" resultType="java.util.Map" parameterType="java.util.Map">
+        select pm.*,os.status as statusName from purchase_master pm
+        join order_status os on pm.statusId=os.id
+        <where>
+            <if test="roleId!=null and roleId==3">
+                and pm.purchaser=#{empName}
+            </if>
+            <if test="purchaseNo!=null and purchaseNo!=''">
+                and pm.purchaseNo=#{purchaseNo}
+            </if>
+            <if test="applyBranch!=null and applyBranch!=''">
+                and pm.applyBranch like '%' #{applyBranch} '%'
+            </if>
+            <if test="proposer!=null and proposer!=''">
+                and pm.proposer like '%' #{proposer} '%'
+            </if>
+            and pm.statusId=1
+        </where>
+        order by pm.purchaseTime desc limit #{start},#{limit}
+    </select>
+
+    <!--  根据条件查询出满足条件采购条数 -->
+    <select id="getPurchaseCount" resultType="int" parameterType="java.util.Map">
+        select count(*) from purchase_master
+        <where>
+            <if test="roleId!=null and roleId==3">
+                and purchaser=#{empName}
+            </if>
+            <if test="purchaseNo!=null and purchaseNo!=''">
+                and purchaseNo=#{purchaseNo}
+            </if>
+            <if test="applyBranch!=null and applyBranch!=''">
+                and applyBranch like '%' #{applyBranch} '%'
+            </if>
+            <if test="proposer!=null and proposer!=''">
+                and proposer like '%' #{proposer} '%'
+            </if>
+            and statusId=1
+        </where>
+    </select>
+
+    <!-- 查询出所有订单的状态 -->
+    <select id="getOrderStatus" resultType="java.util.Map">
+        select * from order_status
+    </select>
+
+    <!-- 通过采购订单id一对多嵌套查询出采购订单的总表信息和详细表信息 -->
+    <!-- 查询采购总表信息 -->
+    <select id="getPurchase" resultMap="purchaseMap">
+          select pm.*,os.status as statusName from purchase_master pm
+            join order_status os on pm.statusId=os.id
+            where pm.purchaseId=#{purchaseId}
+    </select>
+
+    <!-- 根据采购编号查出采购详细信息-->
+    <select id="getPurchaseDetail" resultType="java.util.Map" parameterType="String">
+        select pd.*,pi.*,pt.typeName from purchase_detail pd
+            join product_info pi on pi.productNo=pd.productNo
+            join product_type pt on pt.typeNo=pi.typeNo
+            where pd.purchaseNo=#{purchaseNo}
+    </select>
+
+    <resultMap id="purchaseMap" type="java.util.Map">
+        <id property="purchaseId" column="purchaseId"></id>
+        <result property="purchaseNo" column="purchaseNo"/>
+        <result property="purchaser" column="purchaser"/>
+        <result property="purchaseTime" column="purchaseTime"/>
+        <result property="proposer" column="proposer"/>
+        <result property="applyBranch" column="applyBranch"/>
+        <result property="totalPrice" column="totalPrice"/>
+        <result property="explains" column="explains"/>
+        <collection property="mapList" column="purchaseNo" select="getPurchaseDetail">
+            <id property="detailId" column="detailId"></id>
+            <result property="productNumber" column="productNumber"/>
+            <result property="subtotal" column="subtotal"/>
+            <result property="productNo" column="productNo"/>
+            <result property="productName" column="productName"/>
+            <result property="typeName" column="typeName"/>
+            <result property="productShortName" column="productShortName"/>
+            <result property="productSize" column="productSize"/>
+            <result property="productInPrice" column="productInPrice"/>
+            <result property="productPlace" column="productPlace"/>
+            <result property="productUnit" column="productUnit"/>
+            <result property="productCount" column="productCount"/>
+        </collection>
+    </resultMap>
+
+    <!-- 通过采购订单id更改订单状态 -->
+    <update id="updateStatus">
+        update  purchase_master set statusId=#{statusId} where purchaseId=#{purchaseId}
+    </update>
+
+
+    <!--采购订单列表-->
+    <select id="findPurchaseList"  resultType="java.util.Map">
+    SELECT pm.*,os.status FROM purchase_master pm
+    join order_status os on pm.statusId=os.id
+    <where>
+        <if test="purchaseNo!=null and purchaseNo!=''">
+            and pm.purchaseNo like CONCAT('%',#{purchaseNo},'%')
+        </if>
+        <if test="purchaser!=null and purchaser!=''">
+            and pm.purchaser like CONCAT('%',#{purchaser},'%')
+        </if>
+    </where>
+      LIMIT #{start},#{limit}
+    </select>
+
+    <!--采购订单总数-->
+    <select id="findPurchaseCount" resultType="int">
+        SELECT count(*) FROM purchase_master
+    </select>
+
+    <!--采购订单详情表-->
+    <select id="findPurchaseDetailList"  resultType="java.util.Map">
+        SELECT pm.purchaseNo,pi.productName,pd.subtotal,pd.productNumber,pi.productUnit,pd.createTime,pm.purchaser,pm.explains,pm.proposer
+        FROM purchase_detail pd
+        join purchase_master pm ON pm.purchaseNo=pd.purchaseNo
+        join product_info pi ON pi.productNo=pd.productNo
+        where pd.purchaseNo=#{purchaseNo}
+        LIMIT #{page},#{limit}
+    </select>
+
+    <!--采购订单详情表行数-->
+    <select id="getPurchaseDetailCount" resultType="int">
+        SELECT count(*) FROM purchase_detail where purchaseNo=#{purchaseNo}
+    </select>
+
+
+
+
+    <!--pjx-->
+    <select id="getPurchaseInfoList" parameterType="Map" resultType="Map">
+        select * from purchase_master
+        <where>
+            statusId=2
+            <if test="purchaseNo!=null and purchase!=''">
+                and purchaseNo=#{purchaseNo}
+            </if>
+            <if test="purchaser!=null and purchaser!=''">
+                and purchaser=#{purchaser}
+            </if>
+        </where>
+        limit #{start},#{limit}
+    </select>
+
+    <select id="getPurchaseCounts" parameterType="Map" resultType="int">
+        select count(*) from purchase_master
+        <where>
+            <if test="purchaseNo!=null and purchase!=''">
+                and purchaseNo=#{purchaseNo}
+            </if>
+            <if test="purchaser!=null and purchaser!=''">
+                and purchaser=#{purchaser}
+            </if>
+        </where>
+    </select>
+
+    <select id="getDetailPurchaseInfoList" parameterType="Map" resultType="Map">
+        select pi.*,pd.*,pt.typeName from purchase_detail pd join product_info pi on pd.productNo=pi.productNo join product_type pt on pi.typeNo=pt.typeNo
+        <where>
+            purchaseNo=#{purchaseNo}
+            <if test="productName!=null and productName!=''">
+                and productName Like CONCAT('%',#{productName},'%')
+            </if>
+            <if test="typeName!=null and typeName!=''">
+                and typeName Like CONCAT('%',#{typeName},'%')
+            </if>
+        </where>
+        limit #{start},#{limit}
+    </select>
+
+    <select id="getDetailPurchaseCount" parameterType="Map" resultType="int">
+        select count(*) from purchase_detail
+        <where>
+            purchaseNo=#{purchaseNo}
+        </where>
+    </select>
+
+    <select id="selectotalprice" parameterType="int" resultType="float">
+        select pm.totalPrice from purchase_master pm join purchase_detail pd on pm.purchaseNo=pd.purchaseNo where detailId=#{detailId}
+    </select>
+
+    <update id="returnPurchase" parameterType="Map" >
+        update purchase_detail set productNumber=#{newNumber},subtotal=#{newtotal} where detailId=#{detailId}
+    </update>
+
+    <update id="modifyPurchaseMaster" parameterType="Map">
+        update purchase_master pm join purchase_detail pd on pm.purchaseNo=pd.purchaseNo set pm.totalPrice=#{newPrice} where pd.detailId=#{detailId}
+    </update>
+
+    <delete id="deletePurchaseProduct" parameterType="int">
+        delete from purchase_detail where detailId=#{detailId}
+    </delete>
+</mapper>

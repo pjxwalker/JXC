@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aaa.dao.CustomerInfoMapper">
+    <select id="getCustomerInfoList" resultType="java.util.Map">
+        select * from customer_info
+        <where>
+            <if test="cusName!=null and cusName!=''">
+                and cusName Like CONCAT('%',#{cusName},'%')
+            </if>
+        </where>
+        limit #{start},#{limit}
+    </select>
+
+    <select id="getCustomerCount" resultType="int">
+        select count(*) from customer_info
+        <where>
+            <if test="cusName!=null and cusName!=''">
+                and cusName Like CONCAT('%',#{cusName},'%')
+            </if>
+        </where>
+    </select>
+
+    <insert id="addCustomer" parameterType="com.aaa.entity.CustomerInfo">
+        insert into customer_info(cusName,cusShortName,cusAddress,cusPostCode,cusPhone,cusFax,cusContact,cusContactPhone,cusBank,cusBankCard,cusEmail)
+            values (#{cusName},#{cusShortName},#{cusAddress},#{cusPostCode},#{cusPhone},#{cusFax},#{cusContact},#{cusContactPhone},#{cusBank},#{cusBankCard},#{cusEmail})
+    </insert>
+
+    <select id="getCustomerInfoById" parameterType="int" resultType="com.aaa.entity.CustomerInfo">
+        select * from customer_info where cusId=#{cusId}
+    </select>
+
+    <delete id="deleteCustomer" parameterType="int">
+        delete from customer_info where cusId=#{cusId}
+    </delete>
+
+    <update id="modifycustomer" parameterType="com.aaa.entity.CustomerInfo">
+        update customer_info set cusName=#{cusName},cusShortName=#{cusShortName},cusAddress=#{cusAddress},cusPostCode=#{cusPostCode},cusPhone=#{cusPhone},cusFax=#{cusFax},
+        cusContact=#{cusContact},cusContactPhone=#{cusContactPhone},cusBank=#{cusBank},cusBankCard=#{cusBankCard},cusEmail=#{cusEmail} where cusId=#{cusId}
+    </update>
+</mapper>

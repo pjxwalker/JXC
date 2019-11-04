@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aaa.dao.EmployeeInfoMapper">
+
+    <!--通过员工账号和密码获取用户信息-->
+    <select id="getEmpByLogin" resultType="EmployeeInfo">
+        select * from employee_info where empNo=#{empNo} and empPwd=#{empPwd}
+    </select>
+
+    <!-- 通过员工id获取密码 -->
+    <select id="getPwdById" resultType="String">
+        select empPwd from employee_info where empId=#{empId}
+    </select>
+
+    <!-- 通过员工id更改员工密码-->
+    <update id="modifyPwd" >
+        update employee_info set empPwd=#{newPwd} where empId=#{empId}
+    </update>
+
+    <!-- 通过员工的角色id获取该角色下所拥有的权限 -->
+    <select id="getMenus" resultType="EmpFunction">
+        select ef.*  from emp_function ef
+            join role_function rf on ef.funId=rf.funId
+            where rf.roleId=#{roleId}
+    </select>
+
+    <!-- 获取员工信息表中empId最大 -->
+    <select id="getEmpMaxId" resultType="int">
+        select max(empId) from employee_info
+    </select>
+
+    <!-- 获取所有员工的信息 -->
+    <select id="getEmpList" resultType="java.util.Map">
+        select ei.*,
+        CASE  ei.empSex
+        WHEN '1' THEN  '男'
+        WHEN '0' THEN '女'
+        END AS empSexName,
+        er.roleName from employee_info ei
+            join employee_role er on ei.roleId=er.roleId
+
+            <where>
+                <if test="roleId!=null and roleId!=0">
+                    and ei.roleId=#{roleId}
+                </if>
+                <if test="empNo!=null and empNo!=''">
+                    and  ei.empNo=#{empNo}
+                </if>
+                <if test="empName!=null and empName!=''">
+                    and ei.empName Like CONCAT('%',#{empName},'%')
+                </if>
+            </where>
+            limit #{start},#{limit}
+    </select>
+
+    <!-- 获取员工表中一共有多少条数据 -->
+    <select id="getEmpCount" resultType="int">
+        select count(*) from employee_info
+        <where>
+            <if test="roleId!=null and roleId!=0">
+                and roleId=#{roleId}
+            </if>
+            <if test="empNo!=null and empNo!=''">
+                and  empNo=#{empNo}
+            </if>
+            <if test="empName!=null and empName!=''">
+                and empName Like CONCAT('%',#{empName},'%')
+            </if>
+        </where>
+    </select>
+
+    <!-- 获取所有员工角色信息 -->
+    <select id="getEmpRoleList" resultType="EmployeeRole">
+        select  roleId,roleName from employee_role
+    </select>
+
+    <!--通过员工id获取该员工的详细信息-->
+    <select id="getEmpInfoById" resultType="java.util.Map">
+        select ei.*,er.roleName from employee_info ei
+            join employee_role er on ei.roleId=er.roleId
+            where ei.empId=#{empId}
+    </select>
+
+    <!--  添加员工信息 -->
+    <insert id="addEmp" parameterType="EmployeeInfo">
+        insert into employee_info(empNo,empPwd,empName,empSex,empPolitics,roleId,
+            empBirthday,empAddress,empPostCode,empPhone,empEmail)
+        values(#{empNo},#{empPwd},#{empName},#{empSex},#{empPolitics},#{roleId},
+            #{empBirthday},#{empAddress},#{empPostCode},#{empPhone},#{empEmail})
+    </insert>
+
+    <!-- 修改员工的基本信息 -->
+    <update id="modifyEmp" parameterType="EmployeeInfo">
+        update employee_info set empName=#{empName},empSex=#{empSex},empPolitics=#{empPolitics},
+            <if test="roleId!=null and roleId!=0">
+                roleId=#{roleId},
+            </if>
+           empBirthday=#{empBirthday},empAddress=#{empAddress},
+            empPostCode=#{empPostCode},empPhone=#{empPhone},empEmail=#{empEmail}
+            where empId=#{empId}
+    </update>
+
+    <!-- 删除员工信息 -->
+    <delete id="deleteEmp">
+        delete from employee_info where empId=#{empId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aaa.dao.RepositoryMapper">
+
+    <select id="getRepositoryList" resultType="java.util.Map">
+        SELECT r.*,rt.*,os.status,pt.typeName,pi.* FROM
+        repository r,product_info PI ,repository_type rt,product_type pt,order_status os
+          <trim prefix="where" prefixOverrides="and|or">
+              1=1
+              <if test="repositoryTypeName!=null and repositoryTypeName!='' ">
+                  AND repositoryTypeName=#{repositoryTypeName}
+              </if>
+              <if test="productName!=null and productName!='' ">
+                  AND productName LIKE CONCAT('%',#{productName},'%')
+              </if>
+              <if test="productNo!=null and productNo!='' ">
+                  AND r.productNo LIKE CONCAT('%',#{productNo},'%')
+              </if>
+              <if test="typeNo!=null and typeNo!='' ">
+                  AND pi.typeNo=#{typeNo}
+              </if>
+              AND r.productNo = pi.productNo
+              AND r.repositoryTypeId = rt.repositoryTypeId
+              AND pi.typeNo = pt.typeNo
+              AND r.statusId = os.id
+               LIMIT  #{start},#{limit}
+          </trim>
+    </select>
+
+    <select id="getRepositoryCount" resultType="int">
+          SELECT COUNT(*) FROM repository r,product_info PI ,repository_type rt
+          <trim prefix="where" prefixOverrides="and|or">
+              <if test="repositoryTypeName!=null and repositoryTypeName!='' ">
+                  repositoryTypeName=#{repositoryTypeName}
+              </if>
+              <if test="productName!=null and productName!='' ">
+                  AND productName LIKE CONCAT('%',#{productName},'%')
+              </if>
+              <if test="productNo!=null and productNo!='' ">
+                  AND r.productNo LIKE CONCAT('%',#{productNo},'%')
+              </if>
+              <if test="typeNo!=null and typeNo!='' ">
+                  AND typeNo=#{typeNo}
+              </if>
+            AND r.productNo = pi.productNo
+            AND r.repositoryTypeId = rt.repositoryTypeId
+          </trim>
+    </select>
+
+    <select id="getRepositoryType" resultType="java.util.Map">
+        SELECT * FROM repository_type
+    </select>
+
+    <select id="ShowRepositoryById" resultType="java.util.Map">
+         SELECT r.*,rt.repositoryTypeName,pt.typeName,pi.* FROM
+                repository r,product_info PI ,repository_type rt,product_type pt
+                WHERE  r.productNo = pi.productNo
+                AND r.repositoryTypeId = rt.repositoryTypeId
+                AND pi.typeNo = pt.typeNo
+                AND r.id = #{id}
+    </select>
+
+    <select id="findOtherRepository" resultType="java.util.Map">
+        SELECT * FROM repository_type WHERE repositoryTypeId != #{repositoryTypeId}
+    </select>
+
+    <insert id="AddRepositoryAllot" parameterType="RepositoryAllot">
+        INSERT INTO repository_allot (fromRepositoryId, toRepositoryId, productNo, allotCount, statusId, createTime, updateTime)
+	          VALUES( #{repositoryAllot.fromRepositoryId} ,#{repositoryAllot.toRepositoryId},
+                      #{repositoryAllot.productNo},#{repositoryAllot.allotCount} ,
+                      #{repositoryAllot.statusId}  , now(),  now() );
+    </insert>
+
+    <!--fromRepositoryId源仓库的TypeId-->
+    <update id="updateProductStatus">
+        UPDATE repository SET statusId = 1 , updateTime = now()
+            WHERE repositoryTypeId = #{repositoryAllot.fromRepositoryId} AND productNo = #{repositoryAllot.productNo}
+    </update>
+
+    <select id="getRepositoryAllotList" resultType="java.util.Map">
+        SELECT os.status,r.id,r.productCount,pt.typeName,ra.*,pi.* FROM
+            repository_allot ra,product_info PI,order_status os,repository r,product_type pt
+            WHERE   ra.statusId = 1
+            AND ra.statusId = os.id
+            AND ra.productNo = pi.productNo
+            AND pi.typeNo = pt.typeNo
+            AND ra.fromRepositoryId = r.repositoryTypeId
+            AND ra.productNo = r.productNo
+            LIMIT  #{start},#{limit}
+    </select>
+
+    <select id="getRepositoryAllotCount" resultType="int">
+        SELECT COUNT(*) FROM repository_allot
+    </select>
+
+    <select id="getRepositoryTypeNameById" resultType="String">
+        SELECT repositoryTypeName FROM repository_type
+            WHERE repositoryTypeId=#{repositoryTypeId}
+    </select>
+
+    <update id="updateProductCount">
+        UPDATE repository SET productCount = productCount + #{productCount} ,updateTime=NOW()
+          WHERE repositoryTypeId= #{repositoryTypeId} AND productNo = #{productNo}
+    </update>
+
+    <select id="findProductInRepository" resultType="int">
+        SELECT COUNT(*) FROM repository
+            WHERE repositoryTypeId= #{repositoryTypeId} AND productNo = #{productNo}
+    </select>
+
+    <insert id="AddProductToRepository">
+        INSERT INTO repository ( productNo,productCount, repositoryTypeId ,statusId , createTime, updateTime)
+        VALUES( #{productNo}, #{productCount}, #{repositoryTypeId}, 8 , now(), now());
+    </insert>
+
+    <update id="updateAllotStatus">
+        UPDATE repository_allot SET statusId = 6
+            WHERE repositoryallotId = #{repositoryallotId }
+    </update>
+
+    <update id="returnStatus">
+        UPDATE repository SET statusId = 8,updateTime = NOW()
+            WHERE repositoryTypeId = #{fromRepositoryId} AND productNo = #{productNo}
+    </update>
+
+</mapper>

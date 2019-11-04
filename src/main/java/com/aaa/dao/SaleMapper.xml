@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aaa.dao.SaleMapper">
+    <select id="getProduct" resultType="java.util.Map">
+        select *from product_info join product_type on product_info.typeNo=product_type.typeNo
+    </select>
+
+    <select id="SaleOrderCount" resultType="int">
+        select IFNULL((select IFNULL(saleId,0) from sale_master ORDER BY saleId DESC LIMIT 1),0)
+    </select>
+
+    <insert id="AddSale" parameterType="java.util.Map">
+        insert into purchase_master (purchaseNo,purchaser,purchaseTime,proposer,applyBranch,totalPrice,explains,createTime,updataTime)
+        values (#{purchaseNo},#{purchaser},#{purchaseTime},#{proposer},#{applyBranch},#{totalPrice},#{explains},now(),now())
+    </insert>
+
+    <!--获取仓库type-->
+    <select id="getRepositoryTypeId" resultType="java.util.Map">
+        select * from repository_type
+    </select>
+<!--    //    查询买家是否存在
+    public CustomerInfo getCustomer(Map map);
+    public int addCustomer(CustomerInfo customerInfo);-->
+    <select id="getCustomer" parameterType="java.util.Map" resultType="CustomerInfo">
+        select *from customer_info where cusName=#{proposer} and cusContactPhone=#{phone}
+    </select>
+    <insert id="addCustomer" parameterType="CustomerInfo">
+        insert into customer_info(cusName,cusContactPhone)values (#{proposer},#{phone})
+    </insert>
+
+    <!--增加销售签单-->
+    <insert id="AddSaleDetail" parameterType="java.util.List">
+        insert into sale_detail (saleNo,productNo,productNumber,subtotal,createTime,updateTime)values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.saleNo},#{item.productNo},#{item.productNumber},#{item.subtotal},now(),now())
+        </foreach>
+    </insert>
+
+    <insert id="AddSaleMaster" parameterType="java.util.Map">
+        insert into sale_master (saleNo,saler,saleTime,proposer,phone,totalPrice,explains,createTime,updateTime,saleStatus)
+        <if test="explains!=null and explains!=''">
+            values (#{saleNo},#{saler},now(),#{proposer},#{phone},#{sum},#{explains},now(),now(),'待出货')
+        </if>
+        <if test="explains==null or explains==''">
+            values (#{saleNo},#{saler},now(),#{proposer},#{phone},#{sum},'该签单没有备注',now(),now(),'待出货')
+        </if>
+    </insert>
+
+    <!--查询销售签单-->
+    <select id="SelectSaleDetailById" parameterType="int" resultType="saledetail">
+        select  *from sale_detail where detailId=#{detailId}
+    </select>
+
+    <select id="SelectSaleDetail" resultType="saledetail">
+        select  *from sale_detail
+    </select>
+    <select id="SelectSaleDetailByNo" parameterType="String" resultType="saledetail">
+        select  *from sale_detail sd join product_info pi on sd.productNo=pi.productNo where saleNo=#{saleNo}
+    </select>
+
+    <select id="SelectSaleMaster"  resultType="salemaster">
+        select  *from sale_master
+        <where>
+            <if test="saler!=null and saler!=''">
+                 saler like  CONCAT(CONCAT('%',#{saler},'%'))
+            </if>
+            <if test="proposer!=null and proposer!=''">
+                and proposer like CONCAT(CONCAT('%',#{proposer},'%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="SelectSaleMasterFH" parameterType="String" resultType="salemaster">
+        select  *from sale_master where saleStatus='待出货'
+        <if test="saler!=null and saler!=''">
+            and saler like  CONCAT(CONCAT('%',#{saler},'%'))
+        </if>
+        <if test="proposer!=null and proposer!=''">
+            and proposer like CONCAT(CONCAT('%',#{proposer},'%'))
+        </if>
+    </select>
+    <select id="SelectSaleMasterByNo" parameterType="String" resultType="salemaster">
+        select  *from sale_master where saleNo=#{saleNo} and saleStatus='待出货'
+    </select>
+    <select id="SelectChuKu" parameterType="String" resultType="java.util.Map">
+        SELECT sale_detail.productNo,product_info.productName,sum(sale_detail.productNumber)as productNumber,product_info.productUnit,
+        repository.productCount,customer_info.cusName,customer_info.cusContactPhone,customer_info.cusAddress from sale_detail
+        join product_info ON sale_detail.productNo=product_info.productNo
+        join repository on product_info.productNo=repository.productNo
+        JOIN customer_info on customer_info.cusName=#{cusName} AND customer_info.cusContactPhone=#{cusContactPhone}
+        WHERE sale_detail.saleNo=#{saleNo} and repository.repositoryTypeId=#{repositoryTypeId}
+        GROUP BY product_info.productName
+    </select>
+    <!--查询已售商品-->
+    <select id="getSaleProduct" parameterType="String" resultType="java.util.Map">
+        SELECT pif.productNo,pif.productName,pif.productSize,pif.productUnit,pif.productOutPrice,
+        sum(sd.productNumber)as productNumber
+        from product_info pif
+        join product_type pty on pif.typeNo=pty.typeNo
+        JOIN sale_detail sd on pif.productNo=sd.productNo
+        join sale_master sm on sd.saleNo=sm.saleNo
+        where sm.saleStatus='已售出'
+            <if test="productName!=null and productName!=''">
+                and productName like  CONCAT(CONCAT('%',#{productName},'%'))
+            </if>
+         GROUP BY pif.productNo
+    </select>
+    <!--删除销售签单-->
+    <delete id="DeleteSaleMaster" parameterType="String">
+        delete from sale_master where saleNo=#{saleNo}
+    </delete>
+    <delete id="DeleteSaleDetailByNo" parameterType="String">
+        delete from sale_detail where saleNo=#{saleNo}
+    </delete>
+
+    <delete id="DeleteSaleDetail" parameterType="int">
+        delete from sale_detail where detailId=#{detailId}
+    </delete>
+    <!--更新销售签单-->
+    <update id="updateSaleDetail" parameterType="java.util.List">
+        update sale_detail SET
+        productNumber= CASE detailId
+        <foreach collection="list" item="item" separator=" ">
+            WHEN #{item.detailId} THEN #{item.productNumber}
+        </foreach>
+        END,
+        subtotal= CASE detailId
+        <foreach collection="list" item="item" separator=" ">
+            WHEN #{item.detailId} THEN #{item.subtotal}
+        </foreach>
+        END
+          WHERE detailId IN (
+        <foreach collection="list" item="item" separator=",">
+            #{item.detailId}
+        </foreach>)
+    </update>
+    <update id="updateSaleMaster" parameterType="java.util.Map">
+        update sale_master SET totalPrice= #{sum},updateTime=now() WHERE saleNo= #{saleNo}
+    </update>
+    <update id="updateSaleMasterEx" parameterType="String">
+        update sale_master SET explains= #{explains},updateTime=now() WHERE saleNo= #{saleNo}
+    </update>
+
+
+    <!--出库更改  parameterType="java.util.List"-->
+    <update id="updateRepository"  parameterType="java.util.Map">
+        update repository SET
+        productCount= CASE productNo
+        <foreach collection="productarr" item="item" separator=" ">
+            WHEN #{item.productNo} THEN #{item.productCount}
+        </foreach>
+        END
+        WHERE productNo IN (
+        <foreach collection="productarr" item="item" separator=",">
+            #{item.productNo}
+        </foreach>) AND repositoryTypeId=#{repositoryTypeId}
+    </update>
+    <update id="updateSaleMasterSta">
+        update sale_master SET saleStatus='已售出',updateTime=now() where saleNo=#{saleNo}
+    </update>
+</mapper>

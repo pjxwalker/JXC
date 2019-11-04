@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aaa.dao.ProviderInfoMapper">
+
+    <!-- 获取所有商品信息 -->
+    <select id="getProviderInfoList" resultType="java.util.Map">
+        select * from provider_info
+        <where>
+            <if test="proName!=null and proName!=''">
+                and proName Like CONCAT('%',#{proName},'%')
+            </if>
+        </where>
+        limit #{start},#{limit}
+    </select>
+
+    <select id="getProviderCount" resultType="int">
+        select count(*) from provider_info
+        <where>
+            <if test="proName!=null and proName!=''">
+                and proName Like CONCAT('%',#{proName},'%')
+            </if>
+        </where>
+    </select>
+
+    <insert id="addProviderInfo" parameterType="ProviderInfo">
+        insert into provider_info(proName,proShortName,proAddress,proPostCode,proPhone,proFax,proContact,proContactPhone,proBank,proBankCard,proEmail)
+            values (#{proName},#{proShortName},#{proAddress},#{proPostCode},#{proPhone},#{proFax},#{proContact},#{proContactPhone},#{proBank},#{proBankCard},#{proEmail})
+    </insert>
+
+    <select id="getProviderInfoById" parameterType="int" resultType="ProviderInfo">
+        select * from provider_info where proId=#{proId}
+    </select>
+
+    <delete id="deleteProviderInfo" parameterType="int" >
+        delete from provider_info where proId=#{proId}
+    </delete>
+
+    <update id="modifyProviderInfo" parameterType="com.aaa.entity.ProviderInfo">
+        update provider_info set proName=#{proName},proShortName=#{proShortName},proAddress=#{proAddress},proPostCode=#{proPostCode},proPhone=#{proPhone},proFax=#{proFax},
+        proContact=#{proContact},proContactPhone=#{proContactPhone},proBank=#{proBank},proBankCard=#{proBankCard},proEmail=#{proEmail} where proId=#{proId}
+    </update>
+</mapper>

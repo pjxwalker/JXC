@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aaa.dao.ReturnMapper">
+    <select id="getSaleInfoList" resultType="Map" parameterType="Map">
+        select * from sale_master
+        <where>
+
+            <if test="saleNo!=null and saleNo!=''">
+                and saleNo=#{saleNo}
+            </if>
+            <if test="saler!=null and saler!=''">
+                and saler=#{saler}
+            </if>
+        </where>
+        limit #{start},#{limit}
+    </select>
+
+    <select id="getSaleCount" parameterType="Map" resultType="int">
+        select count(*) from sale_master
+        <where>
+            <if test="saleNo!=null and saleNo!=''">
+                and saleNo=#{saleNo}
+            </if>
+            <if test="saler!=null and saler!=''">
+                and saler=#{saler}
+            </if>
+        </where>
+    </select>
+
+    <select id="getDetailSaleInfoList" parameterType="Map" resultType="Map">
+        select pi.*,sd.*,pt.typeName from sale_detail sd join product_info pi on sd.productNo=pi.productNo join product_type pt on pi.typeNo=pt.typeNo
+        <where>
+            saleNo=#{saleNo}
+            <if test="productName!=null and productName!=''">
+                and productName Like CONCAT('%',#{productName},'%')
+            </if>
+            <if test="typeName!=null and typeName!=''">
+                and typeName Like CONCAT('%',#{typeName},'%')
+            </if>
+        </where>
+        limit #{start},#{limit}
+    </select>
+
+    <select id="getDetailSaleCount" parameterType="Map" resultType="int">
+        select count(*) from sale_detail
+        <where>
+            saleNo=#{saleNo}
+        </where>
+    </select>
+
+    <delete id="returnSaleMaster" parameterType="String" >
+        delete from sale_master where saleNo=#{saleNo}
+    </delete>
+
+    <delete id="returnSaleDetail" parameterType="String">
+        delete from sale_detail where saleNo=#{saleNo}
+    </delete>
+
+    <delete id="deleteSaleDetail" parameterType="int">
+        delete from sale_detail where detailId=#{detailId}
+    </delete>
+
+
+
+    <select id="selectotalprice" parameterType="int" resultType="float">
+        select sm.totalPrice from sale_master sm join sale_detail sd on sm.saleNo=sd.saleNo where detailId=#{detailId}
+    </select>
+
+    <update id="modifySaleInfo" parameterType="Map" >
+        update sale_detail set productNumber=#{newNumber},subtotal=#{newtotal} where detailId=#{detailId}
+    </update>
+
+    <update id="modifySaletotal" parameterType="Map">
+        update sale_master sm join sale_detail sd on sm.saleNo=sd.saleNo set sm.totalPrice=#{newPrice} where sd.detailId=#{detailId}
+    </update>
+
+
+    <select id="getRepositoryName" resultType="Map">
+        select * from repository_type
+    </select>
+
+    <select id="checkProduct" parameterType="Map" resultType="int">
+        SELECt count(*) from repository where repositoryTypeId=#{reId} and productNo=#{productNo}
+    </select>
+
+    <select id="getreCount" parameterType="Map" resultType="int">
+        select productCount from repository where repositoryTypeId=#{reId} and productNo=#{productNo}
+    </select>
+
+    <update id="modifyreCount" parameterType="Map">
+        update repository set productCount=#{productNumber},updateTime=now() where repositoryTypeId=#{reId} and productNo=#{productNo}
+    </update>
+
+    <insert id="addRepository" parameterType="Map">
+        insert into repository(productNo,productCount,repositoryTypeId,statusId,updateTime) values (#{productNo},#{retrunNumber},#{reId},8,now())
+    </insert>
+
+    <select id="getSaleDetail" parameterType="String" resultType="Map">
+        select * from sale_detail where saleNo=#{saleNo}
+    </select>
+</mapper>
